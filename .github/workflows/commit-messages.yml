@@ -1,0 +1,15 @@
+name: Commit messages
+
+# Every commit subject is a conventional commit. The rule is in
+# tools/check-commit-subject.sh, which the commit-msg hook calls too; the
+# workflow that applies it to every commit in a push is the family's, in
+# Lautstark/.github, and this file only names it. Since 2026-09-16.
+
+on:
+  push:
+    branches: [main, 'claude/**', 'renovate/**']
+  pull_request:
+
+jobs:
+  subjects:
+    uses: Lautstark/.github/.github/workflows/commit-messages.yml@main

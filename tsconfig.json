@@ -1,0 +1,8 @@
+{
+  "extends": "@lautstark/toolchain/tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client", "node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.svelte", "test/**/*.ts", "vite.config.ts", "vitest.config.ts"],
+  "exclude": ["node_modules"]
+}

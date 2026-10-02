@@ -1,0 +1,304 @@
+/* SIGNdigital's own teals, read off their site on 2026-10-02: #53BAC0 for
+   surfaces, #3C9EA4 for links and buttons. Neither carries white text at 4.5:1,
+   so the light scheme uses a darker step of the same hue (#2A7B80, 4.95:1) and
+   the dark scheme uses #53BAC0 on near-black (8.6:1). */
+:root {
+  --accent: #2a7b80;
+  --on-accent: #ffffff;
+  --plane-0: #ffffff;
+  --plane-1: #f5f5f4;
+  --plane-2: #e7e5e4;
+  --text: #1c1917;
+  --text-2: #57534e;
+  --text-3: #78716c;
+  --line: #e7e5e4;
+  --danger: #b91c1c;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #53bac0;
+    --on-accent: #0c2d2f;
+    --plane-0: #0c0a09;
+    --plane-1: #1c1917;
+    --plane-2: #292524;
+    --text: #f5f5f4;
+    --text-2: #d6d3d1;
+    --text-3: #a8a29e;
+    --line: #292524;
+    --danger: #f87171;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--plane-0);
+  color: var(--text);
+  font: 17px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+#app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+main {
+  flex: 1;
+  padding: calc(env(safe-area-inset-top) + 12px) max(16px, env(safe-area-inset-right)) 96px
+    max(16px, env(safe-area-inset-left));
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 8px 0 16px;
+}
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+}
+.header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.header h1 {
+  flex: 1;
+  margin: 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The search field. */
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--plane-1);
+  border: 1px solid var(--line);
+  margin: 8px 0 12px;
+}
+.field svg {
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+.field input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 18px;
+  color: var(--text);
+  outline: none;
+}
+
+/* Rows: search results, lists, the signs in a list. */
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+.row .main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 4px;
+  min-height: 60px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.row .main:disabled {
+  cursor: default;
+  color: var(--text-2);
+}
+.name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.count {
+  color: var(--text-3);
+  font-size: 15px;
+}
+.chevron {
+  color: var(--text-3);
+  width: 18px;
+  height: 18px;
+}
+
+.icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon.danger {
+  color: var(--danger);
+}
+.text {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  padding: 8px;
+}
+
+.button {
+  height: 46px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--plane-1);
+}
+.button.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: transparent;
+}
+.button.danger {
+  color: var(--danger);
+}
+.button:disabled {
+  opacity: 0.6;
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+input:not([type="search"]) {
+  font: inherit;
+  color: var(--text);
+  height: 46px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--plane-0);
+  min-width: 0;
+}
+.inline {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.inline input {
+  flex: 1;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.stack label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: 15px;
+}
+
+.note {
+  color: var(--text-2);
+  margin: 12px 4px;
+}
+.note.faint {
+  color: var(--text-3);
+  font-size: 15px;
+}
+.note.error {
+  color: var(--danger);
+}
+
+/* The tab bar. */
+.tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  background: var(--plane-0);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tabs button {
+  flex: 1;
+  border: 0;
+  background: none;
+  padding: 8px 0 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.tabs button.on {
+  color: var(--accent);
+}
+
+/* The add-to-list sheet. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.4);
+  z-index: 5;
+}
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  max-height: 80dvh;
+  overflow-y: auto;
+  background: var(--plane-0);
+  border-radius: 18px 18px 0 0;
+  padding: 16px 16px calc(env(safe-area-inset-bottom) + 16px);
+}
+.sheet-title {
+  font-weight: 600;
+  margin: 4px 4px 8px;
+}
