@@ -34,6 +34,19 @@
 <div class="page settings">
   <h1>Einstellungen</h1>
 
+  <p class="section">SIGNdigital</p>
+  {#if app.loggedIn}
+    <div class="card">
+      <div class="card-row">
+        <small>Angemeldet als</small>
+        <span class="email">{app.email}</span>
+      </div>
+      <button class="card-row danger" onclick={logout}>Abmelden</button>
+    </div>
+  {:else}
+    <Login title={false} />
+  {/if}
+
   <p class="section" id="speed-label">Geschwindigkeit, mit der Videos starten</p>
   <div class="segments" role="radiogroup" aria-labelledby="speed-label">
     {#each SPEEDS as s (s.rate)}
@@ -48,19 +61,6 @@
       </button>
     {/each}
   </div>
-
-  <p class="section">SIGNdigital</p>
-  {#if app.loggedIn}
-    <div class="card">
-      <div class="card-row">
-        <small>Angemeldet als</small>
-        <span class="email">{app.email}</span>
-      </div>
-      <button class="card-row danger" onclick={logout}>Abmelden</button>
-    </div>
-  {:else}
-    <Login title={false} />
-  {/if}
 
   <div class="version">
     <span>Version {built} · {__BUILD__.commit}</span>
