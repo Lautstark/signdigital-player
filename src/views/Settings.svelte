@@ -3,7 +3,12 @@
   import { SPEEDS, rateLabel } from "../speed";
   import Login from "./Login.svelte";
 
-  const built = new Date(__BUILD__.time).toLocaleString("de-DE", { dateStyle: "long", timeStyle: "short" });
+  const built = new Date(__BUILD__.time).toLocaleString("de-DE", {
+    day: "numeric",
+    month: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   let reloading = $state(false);
 
   /* An app started from the iPhone home screen has no reload of its own.
@@ -29,59 +34,104 @@
 <div class="page">
   <h1>Einstellungen</h1>
 
-  <p class="section">Geschwindigkeit beim Abspielen</p>
-  <ul class="rows" role="radiogroup" aria-label="Geschwindigkeit beim Abspielen">
+  <p class="section" id="speed-label">Geschwindigkeit, mit der Videos starten</p>
+  <div class="segments" role="radiogroup" aria-labelledby="speed-label">
     {#each SPEEDS as s (s.rate)}
-      {@const on = app.defaultSpeed === s.rate}
-      <li class="row">
-        <button class="main" role="radio" aria-checked={on} onclick={() => app.setDefaultSpeed(s.rate)}>
-          <span class="name">{s.name}</span>
-          <span class="count">{rateLabel(s.rate)}</span>
-          <svg class="check" class:on viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
-        </button>
-      </li>
+      <button
+        role="radio"
+        aria-checked={app.defaultSpeed === s.rate}
+        aria-label={s.name}
+        class:on={app.defaultSpeed === s.rate}
+        onclick={() => app.setDefaultSpeed(s.rate)}
+      >
+        {rateLabel(s.rate)}
+      </button>
     {/each}
-  </ul>
-  <p class="note faint">Damit startet jedes Video. Im Video selbst stellst du oben rechts um.</p>
+  </div>
 
-  <p class="section">SIGNdigital-Konto</p>
+  <p class="section">SIGNdigital</p>
   {#if app.loggedIn}
-    <p class="note">Angemeldet als <strong>{app.email}</strong></p>
-    <p class="note faint">Die App merkt sich die Anmeldung auf diesem Handy und meldet sich selbst neu an, wenn SIGNdigital sie abgelaufen sieht.</p>
-    <div class="actions">
-      <button class="button" onclick={logout}>Abmelden</button>
+    <div class="card">
+      <div class="card-row">
+        <small>Angemeldet als</small>
+        <span class="email">{app.email}</span>
+      </div>
+      <button class="card-row danger" onclick={logout}>Abmelden</button>
     </div>
   {:else}
-    <Login />
+    <Login title={false} />
   {/if}
 
   <div class="version">
-    <span>Version vom {built} · {__BUILD__.commit}</span>
+    <span>Version {built} · {__BUILD__.commit}</span>
     <button class="text" disabled={reloading} onclick={reload}>{reloading ? "Lädt …" : "Neu laden"}</button>
   </div>
 </div>
 
 <style>
+  .section {
+    margin-bottom: 8px;
+  }
+  .segments {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--plane-1);
+  }
+  .segments button {
+    flex: 1;
+    height: 40px;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .segments button.on {
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 600;
+  }
+  .card {
+    border-radius: 12px;
+    background: var(--plane-1);
+    overflow: hidden;
+  }
+  .card-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    background: none;
+    text-align: left;
+  }
+  .card-row + .card-row {
+    border-top: 1px solid var(--line);
+  }
+  .card-row small {
+    font-size: 13px;
+    color: var(--text-3);
+  }
+  .email {
+    overflow-wrap: anywhere;
+  }
+  .card-row.danger {
+    color: var(--danger);
+  }
   .version {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     margin-top: 32px;
-    padding-top: 12px;
-    border-top: 1px solid var(--line);
     font-size: 13px;
     color: var(--text-3);
   }
   .version button {
     flex-shrink: 0;
     white-space: nowrap;
-  }
-  .check {
-    color: var(--accent);
-    visibility: hidden;
-  }
-  .check.on {
-    visibility: visible;
   }
 </style>

@@ -1,6 +1,9 @@
 <script lang="ts">
   import { api, app } from "../store.svelte";
 
+  /* On its own the login has a heading; under Einstellungen the section names it. */
+  let { title = true }: { title?: boolean } = $props();
+
   let email = $state(api.email ?? "");
   let password = $state("");
   let busy = $state(false);
@@ -27,8 +30,10 @@
   }
 </script>
 
-<h1>Bei SIGNdigital anmelden</h1>
-<p class="note faint">Mit deinem SIGNdigital-Konto. Die Anmeldung bleibt auf diesem Handy und geht nur an sign-digital.de.</p>
+{#if title}
+  <h1>Bei SIGNdigital anmelden</h1>
+  <p class="note faint">Mit deinem SIGNdigital-Konto. Die Anmeldung bleibt auf diesem Handy und geht nur an sign-digital.de.</p>
+{/if}
 <form class="stack" onsubmit={login}>
   <label>
     E-Mail
