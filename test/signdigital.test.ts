@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type KeyValueStore, Refused, SignDigital, slugCandidates } from "../src/signdigital";
+import { type KeyValueStore, Refused, SignDigital } from "../src/signdigital";
 
 class MemoryStore implements KeyValueStore {
   readonly values = new Map<string, string>();
@@ -108,6 +108,20 @@ describe("SignDigital", () => {
     expect(api.loggedIn).toBe(false);
   });
 
+  it("searches the way the site does, a page at a time", async () => {
+    const store = new MemoryStore();
+    store.put("signdigital.token", "t1");
+    const { seen, fetchFn } = server(() => [200, { total: 32, data: [SCHMUTZIG] }]);
+
+    const page = await new SignDigital(store, fetchFn).search("schmu tzig", 30, 30);
+
+    const url = new URL(seen[0].url);
+    expect(url.pathname).toBe("/search/query");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ text: "schmu tzig", categories: "alle", $skip: "30", $limit: "30" });
+    expect(page.total).toBe(32);
+    expect(page.signs.map((s) => s.slug)).toEqual(["schmutzig"]);
+  });
+
   it("asks for links in one request, in order", async () => {
     const store = new MemoryStore();
     store.put("signdigital.token", "t1");
@@ -117,13 +131,5 @@ describe("SignDigital", () => {
 
     expect(links).toEqual(["https://x/1", "https://x/2"]);
     expect(seen[0].body).toEqual([{ file: "a" }, { file: "b" }]);
-  });
-});
-
-describe("slugCandidates", () => {
-  it("spells out umlauts as a second guess", () => {
-    expect(slugCandidates("  Zähne putzen ")).toEqual(["zähne-putzen", "zaehne-putzen"]);
-    expect(slugCandidates("schmutzig")).toEqual(["schmutzig"]);
-    expect(slugCandidates("   ")).toEqual([]);
   });
 });

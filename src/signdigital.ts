@@ -5,8 +5,8 @@
  *
  * The endpoints are the ones zeigmal's SignDigitalProvider uses, which are the
  * ones the site's own player uses: `POST /api/authentication` for a token,
- * `GET /api/signs?slug=…` for a sign, `POST /cargo/presigned-url` for links
- * that expire after 60 seconds.
+ * `GET /api/signs?slug=…` for a sign, `GET /search/query` for the search,
+ * `POST /cargo/presigned-url` for links that expire after 60 seconds.
  *
  * Nothing is written to disk. Their terms allow watching through a
  * subscription and do not allow keeping the file.
@@ -83,19 +83,15 @@ export class SignDigital {
   }
 
   /**
-   * Signs matching what was typed.
-   *
-   * Provisional: the server answers only an exact slug without saying more,
-   * and how the site's own search asks has not been looked at yet. Until it
-   * has, this tries the slugs the typed word could plausibly have.
+   * Signs matching what was typed, the way the site's own search asks
+   * (`GET /search/query`, seen 2026-10-02): by part of the name or a keyword,
+   * in pages. It answers without a login too.
    */
-  async search(query: string): Promise<Sign[]> {
-    const found = new Map<string, Sign>();
-    for (const slug of slugCandidates(query)) {
-      const sign = await this.sign(slug);
-      if (sign && !found.has(sign.slug)) found.set(sign.slug, sign);
-    }
-    return [...found.values()];
+  async search(query: string, skip = 0, limit = 30): Promise<{ signs: Sign[]; total: number }> {
+    const params = new URLSearchParams({ text: query, categories: "alle", $skip: String(skip), $limit: String(limit) });
+    const page = (await this.authed("GET", `/search/query?${params}`)) as { data?: unknown[]; total?: number };
+    const signs = (page.data ?? []).map(toSign).filter((s) => s.slug);
+    return { signs, total: page.total ?? signs.length };
   }
 
   /** Links for storage paths, in the same order. They expire after 60 seconds. */
@@ -153,12 +149,4 @@ function pick(variants: Record<string, string> | undefined, order: string[]): st
   if (!variants) return null;
   for (const key of order) if (variants[key]) return variants[key];
   return null;
-}
-
-/** The slugs a typed word could have: as typed, and with ä ö ü ß spelled out. */
-export function slugCandidates(query: string): string[] {
-  const base = query.trim().toLowerCase().replace(/\s+/g, "-");
-  if (!base) return [];
-  const spelled = base.replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss");
-  return [...new Set([base, spelled])];
 }

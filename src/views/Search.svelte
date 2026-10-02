@@ -38,8 +38,10 @@
     {/each}
   </ul>
 
-  {#if !search.searched && !search.busy}
-    <p class="note faint">Vorerst findet die Suche nur das genaue Wort, wie „schmutzig“ oder „Zähne putzen“.</p>
+  {#if search.hasMore}
+    <button class="button more" disabled={search.busy} onclick={() => search.more()}>
+      {search.busy ? "Lädt …" : `Mehr anzeigen (${search.total - search.results.length} weitere)`}
+    </button>
   {/if}
 </div>
 

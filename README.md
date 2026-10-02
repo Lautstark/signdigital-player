@@ -26,5 +26,4 @@ npm run icons      # nach einer Änderung an public/icon.svg
 ```
 
 Die Schnittstelle ist dieselbe wie in zeigmals `SignDigitalProvider`
-(Lautstark/zeigmal). Die Suche findet vorerst nur das genaue Wort, weil noch
-nicht nachgesehen ist, wie die Website selbst sucht.
+(Lautstark/zeigmal), dazu die Suche der Website (`GET /search/query`).
