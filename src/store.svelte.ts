@@ -1,6 +1,9 @@
 import { type KeyValueStore, type SignRef, SignDigital } from "./signdigital";
 import { isRate, type Rate } from "./speed";
-import { freeName, listFromLink, type SharedList } from "./share";
+import { freeName, listFromLink, newSigns, type SharedList } from "./share";
+
+/** Only slug and name are kept of a sign, whatever else came with it. */
+const ref = ({ slug, name }: SignRef): SignRef => ({ slug, name });
 
 /**
  * localStorage, which can throw (blocked site data, a private window). A store
@@ -30,6 +33,14 @@ export interface List {
   id: string;
   name: string;
   signs: SignRef[];
+  /** For a list that was imported, the id of the list it was shared from. */
+  origin?: string;
+}
+
+/** A list as it is shared: under the id it was first shared with, so a list
+    passed on from person to person is still recognised as the same one. */
+export function asShared(list: List): SharedList {
+  return { name: list.name, signs: list.signs, id: list.origin ?? list.id };
 }
 
 export const TABS = ["search", "lists", "settings"] as const;
@@ -123,13 +134,27 @@ class App {
   }
 
   addToList(id: string, sign: SignRef) {
+    this.addSigns(id, [sign]);
+  }
+
+  /** Appends the signs a list does not have yet. */
+  addSigns(id: string, signs: SignRef[]) {
     this.saveLists(
-      this.lists.map((l) =>
-        l.id === id && !l.signs.some((s) => s.slug === sign.slug)
-          ? { ...l, signs: [...l.signs, { slug: sign.slug, name: sign.name }] }
-          : l,
-      ),
+      this.lists.map((l) => (l.id === id ? { ...l, signs: [...l.signs, ...newSigns(l.signs, signs).map(ref)] } : l)),
     );
+  }
+
+  /** Makes a list hold exactly the shared signs, in their order; its name stays. */
+  replaceSigns(id: string, shared: SharedList) {
+    this.saveLists(
+      this.lists.map((l) => (l.id === id ? { ...l, signs: shared.signs.map(ref), origin: l.origin ?? shared.id } : l)),
+    );
+  }
+
+  /** The list a shared one is already here as: by its id, or by name for links without one. */
+  findShared(shared: SharedList): List | null {
+    const byId = shared.id && this.lists.find((l) => l.id === shared.id || l.origin === shared.id);
+    return byId || this.lists.find((l) => l.name === shared.name) || null;
   }
 
   /** Takes a shared list over as a new one; a name already in use gets a number. */
@@ -137,7 +162,8 @@ class App {
     const list = {
       id: crypto.randomUUID(),
       name: freeName(shared.name, this.lists.map((l) => l.name)),
-      signs: shared.signs.map(({ slug, name }) => ({ slug, name })),
+      signs: shared.signs.map(ref),
+      origin: shared.id,
     };
     this.saveLists([...this.lists, list]);
     return list;

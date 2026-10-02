@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Sign } from "../signdigital";
-  import { api, app } from "../store.svelte";
+  import { api, app, asShared } from "../store.svelte";
   import { thumbnails } from "../thumbs";
   import Thumb from "../Thumb.svelte";
   import SearchField from "../SearchField.svelte";
@@ -32,7 +32,7 @@
   let copied = $state(false);
   async function share() {
     if (!list) return;
-    const url = shareLink(list, appUrl);
+    const url = shareLink(asShared(list), appUrl);
     if (navigator.share) {
       await navigator.share({ title: list.name, text: `Gebärden-Liste „${list.name}“`, url }).catch(() => {});
     } else {
