@@ -48,9 +48,17 @@
 
   function remove() {
     if (!list) return;
-    if (!confirm(`Liste „${list.name}“ löschen?`)) return;
+    const n = list.signs.length;
+    const inside = n === 0 ? "" : n === 1 ? " mit einer Gebärde" : ` mit ${n} Gebärden`;
+    if (!confirm(`Liste „${list.name}“${inside} löschen?`)) return;
     app.deleteList(list.id);
     leave();
+  }
+
+  function takeOut(slug: string, name: string) {
+    if (!list) return;
+    if (!confirm(`„${name}“ aus „${list.name}“ nehmen?`)) return;
+    app.removeFromList(list.id, slug);
   }
 
   function rename() {
@@ -113,15 +121,13 @@
     <ul class="rows">
       {#each list.signs as sign (sign.slug)}
         <li class="row">
-          <button class="main" disabled={editing} onclick={() => app.play(sign, list.id)}>
+          <button class="main" onclick={() => app.play(sign, list.id)}>
             <Thumb src={thumbs.get(sign.slug)} />
             <span class="name">{sign.name}</span>
           </button>
-          {#if editing}
-            <button class="icon danger" aria-label="{sign.name} entfernen" onclick={() => app.removeFromList(list.id, sign.slug)}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
-            </button>
-          {/if}
+          <button class="icon" aria-label="{sign.name} aus der Liste nehmen" onclick={() => takeOut(sign.slug, sign.name)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>
+          </button>
         </li>
       {/each}
     </ul>
