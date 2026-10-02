@@ -44,6 +44,13 @@ body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
+/* Started from the iPhone home screen with the translucent status bar, iOS
+   sizes the page shorter by the status bar's height, and everything pinned to
+   the bottom (the tab bar) floats that far above it. Adding the inset back
+   makes the page reach the screen's edge; elsewhere the inset is 0. */
+html {
+  min-height: calc(100% + env(safe-area-inset-top));
+}
 #app {
   min-height: 100dvh;
   display: flex;
@@ -182,7 +189,7 @@ h1 {
 .section {
   font-size: 13px;
   color: var(--text-3);
-  margin: 18px 4px 0;
+  margin: 18px 0 0;
 }
 .icon.danger {
   color: var(--danger);
@@ -229,6 +236,17 @@ input:not([type="search"]) {
   background: var(--plane-0);
   min-width: 0;
 }
+/* iOS draws its own blue ring around a focused field; this is the app's. */
+input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.field:focus-within {
+  border-color: var(--accent);
+}
+.field input:focus {
+  outline: none;
+}
 .inline {
   display: flex;
   gap: 8px;
@@ -252,7 +270,7 @@ input:not([type="search"]) {
 
 .note {
   color: var(--text-2);
-  margin: 12px 4px;
+  margin: 12px 0;
 }
 .note.faint {
   color: var(--text-3);
@@ -310,5 +328,5 @@ input:not([type="search"]) {
 }
 .sheet-title {
   font-weight: 600;
-  margin: 4px 4px 8px;
+  margin: 4px 0 8px;
 }
