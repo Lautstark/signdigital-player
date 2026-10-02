@@ -3,10 +3,23 @@
   import { api, app } from "../store.svelte";
   import { thumbnails } from "../thumbs";
   import Thumb from "../Thumb.svelte";
+  import SearchField from "../SearchField.svelte";
+  import { Searcher } from "../searcher.svelte";
 
   let newName = $state("");
   let editing = $state(false);
   let thumbs = $state.raw(new Map<string, string>());
+
+  /* A search of the list's own: + puts a hit straight at the end of this list. */
+  const search = new Searcher();
+  let query = $state("");
+
+  function leave() {
+    app.openList = null;
+    editing = false;
+    query = "";
+    search.now("");
+  }
 
   const list = $derived(app.lists.find((l) => l.id === app.openList) ?? null);
 
@@ -37,8 +50,7 @@
     if (!list) return;
     if (!confirm(`Liste „${list.name}“ löschen?`)) return;
     app.deleteList(list.id);
-    app.openList = null;
-    editing = false;
+    leave();
   }
 
   function rename() {
@@ -51,15 +63,51 @@
 <div class="page">
   {#if list}
     <div class="header">
-      <button class="icon" aria-label="Zurück zu den Listen" onclick={() => ((app.openList = null), (editing = false))}>
+      <button class="icon" aria-label="Zurück zu den Listen" onclick={leave}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
       </button>
       <h1>{list.name}</h1>
       <button class="text" onclick={() => (editing = !editing)}>{editing ? "Fertig" : "Bearbeiten"}</button>
     </div>
 
+    {#if !editing}
+      <SearchField bind:value={query} placeholder="Gebärde hinzufügen" {search} />
+
+      {#if search.error}
+        <p class="note error">{search.error}</p>
+      {:else if search.busy && search.results.length === 0}
+        <p class="note">Suche …</p>
+      {:else if search.searched && search.results.length === 0}
+        <p class="note">Keine Gebärde „{search.searched}“ gefunden.</p>
+      {/if}
+
+      {#if search.results.length > 0}
+        <ul class="rows">
+          {#each search.results as sign (sign.slug)}
+            {@const inside = list.signs.some((s) => s.slug === sign.slug)}
+            <li class="row">
+              <button class="main" onclick={() => app.play(sign)}>
+                <Thumb src={search.thumbs.get(sign.slug)} />
+                <span class="name">{sign.name}</span>
+              </button>
+              {#if inside}
+                <span class="icon" aria-label="{sign.name} ist in der Liste">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
+                </span>
+              {:else}
+                <button class="icon" aria-label="{sign.name} zu {list.name}" onclick={() => app.addToList(list.id, sign)}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                </button>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+        <p class="section">In der Liste</p>
+      {/if}
+    {/if}
+
     {#if list.signs.length === 0}
-      <p class="note">Noch leer. Unter Suchen legst du Gebärden mit + hier hinein.</p>
+      <p class="note">Noch leer. Such oben eine Gebärde und leg sie mit + hinein.</p>
     {/if}
 
     <ul class="rows">
