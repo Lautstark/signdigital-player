@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeList, freeName, listFromLink, newSigns, sameSigns, shareLink } from "../src/share";
+import { decodeList, freeName, listFromLink, newSigns, sameSigns, shareLink } from "../src/lib/share";
 
 const MORGENS = {
   name: "Morgens ☀️",

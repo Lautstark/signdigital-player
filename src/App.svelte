@@ -1,24 +1,28 @@
 <script lang="ts">
-  import { app, type Tab } from "./store.svelte";
-  import { GEAR } from "./icons";
+  import type { IconName } from "./lib/icons";
+  import { lists } from "./state/lists.svelte";
+  import { nav, type Tab } from "./state/nav.svelte";
+  import { player } from "./state/player.svelte";
+  import { session } from "./state/session.svelte";
+  import Icon from "./components/Icon.svelte";
   import ImportSheet from "./views/ImportSheet.svelte";
-  import Search from "./views/Search.svelte";
   import Lists from "./views/Lists.svelte";
-  import Settings from "./views/Settings.svelte";
   import Login from "./views/Login.svelte";
   import Player from "./views/Player.svelte";
+  import Search from "./views/Search.svelte";
+  import Settings from "./views/Settings.svelte";
 
-  const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: "search", label: "Suchen", icon: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4" },
-    { id: "lists", label: "Listen", icon: "M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" },
-    { id: "settings", label: "Einstellungen", icon: GEAR },
+  const tabs: { id: Tab; label: string; icon: IconName }[] = [
+    { id: "search", label: "Suchen", icon: "search" },
+    { id: "lists", label: "Listen", icon: "list" },
+    { id: "settings", label: "Einstellungen", icon: "gear" },
   ];
 
   /* The very first open has nothing to show but the login, so it gets the
      whole screen. Once there are lists, a logged-out app keeps its tabs and
      the login sits under Einstellungen. */
-  const welcome = $derived(!app.loggedIn && app.lists.length === 0);
-  const shown = $derived<Tab>(app.loggedIn ? app.tab : "settings");
+  const welcome = $derived(!session.loggedIn && lists.all.length === 0);
+  const shown = $derived<Tab>(session.loggedIn ? nav.tab : "settings");
 </script>
 
 {#if welcome}
@@ -40,31 +44,52 @@
 
   <nav class="tabs">
     {#each tabs as t (t.id)}
-      <button class:on={shown === t.id} aria-current={shown === t.id ? "page" : undefined} onclick={() => (app.tab = t.id)}>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d={t.icon} /></svg>
+      <button class:on={shown === t.id} aria-current={shown === t.id ? "page" : undefined} onclick={() => (nav.tab = t.id)}>
+        <Icon name={t.icon} />
         {t.label}
       </button>
     {/each}
   </nav>
 {/if}
 
-{#if app.importing}
+{#if nav.importing}
   <ImportSheet />
 {/if}
 
-{#if app.playing}
-  {#key app.playing.slug}
-    <Player sign={app.playing} />
+{#if player.playing}
+  {#key player.playing.slug}
+    <Player sign={player.playing} />
   {/key}
 {/if}
 
 <style>
   .welcome {
-    display: flex;
-    align-items: center;
+    justify-content: center;
     padding-bottom: 15dvh;
   }
-  .welcome .page {
-    width: 100%;
+  .tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    background: var(--plane-0);
+    border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tabs button {
+    flex: 1;
+    border: 0;
+    background: none;
+    padding: 8px 0 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .tabs button.on {
+    color: var(--accent);
   }
 </style>

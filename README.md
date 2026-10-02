@@ -25,5 +25,15 @@ npm run typecheck
 npm run icons      # nach einer Änderung an public/icon.svg
 ```
 
+Aufbau:
+
+- `src/lib/` – alles ohne Oberfläche: der SIGNdigital-Client, Listen und
+  Teilen als reine Funktionen, Speicher, Geschwindigkeiten, Icons.
+- `src/state/` – der reaktive Zustand, je Aufgabe ein Modul: Anmeldung,
+  Listen, Navigation, Player, Einstellungen, Suche.
+- `src/components/` – Bausteine, die mehrere Bildschirme nutzen.
+- `src/views/` – die Bildschirme und Sheets.
+- `src/main.ts` – verdrahtet einmal, was auf den Browser hört.
+
 Die Schnittstelle ist dieselbe wie in zeigmals `SignDigitalProvider`
 (Lautstark/zeigmal), dazu die Suche der Website (`GET /search/query`).

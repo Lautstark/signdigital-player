@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isRate, nextRate, rateLabel } from "../src/speed";
+import { isRate, nextRate, rateLabel } from "../src/lib/speed";
 
 describe("speed", () => {
   it("steps Normal, Schnell, Langsam and round again", () => {

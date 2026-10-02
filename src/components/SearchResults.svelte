@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import type { Sign } from "./signdigital";
-  import type { Searcher } from "./searcher.svelte";
-  import { app } from "./store.svelte";
+  import type { Sign } from "../lib/signdigital";
+  import type { Searcher } from "../state/searcher.svelte";
+  import { player } from "../state/player.svelte";
   import Thumb from "./Thumb.svelte";
 
   /* What a search found, shared by the Suchen tab and the search in a list.
@@ -22,7 +22,7 @@
   <ul class="rows">
     {#each search.results as sign (sign.slug)}
       <li class="row">
-        <button class="main" onclick={() => app.play(sign)}>
+        <button class="main" onclick={() => player.play(sign)}>
           <Thumb src={search.thumbs.get(sign.slug)} />
           <span class="name">{sign.name}</span>
         </button>
@@ -37,3 +37,11 @@
     </button>
   {/if}
 {/if}
+
+<style>
+  .more {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+  }
+</style>

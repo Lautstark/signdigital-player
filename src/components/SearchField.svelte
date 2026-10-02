@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { Searcher } from "./searcher.svelte";
+  import type { Searcher } from "../state/searcher.svelte";
+  import Icon from "./Icon.svelte";
 
   let { value = $bindable(), placeholder, search }: { value: string; placeholder: string; search: Searcher } = $props();
 
@@ -10,7 +11,7 @@
 </script>
 
 <form class="field" role="search" onsubmit={(e) => (e.preventDefault(), search.now(value))}>
-  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+  <Icon name="search" />
   <input
     type="search"
     {placeholder}
@@ -22,12 +23,44 @@
   />
   {#if value}
     <button type="button" class="clear" aria-label="Suche leeren" onclick={clear}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      <Icon name="close" />
     </button>
   {/if}
 </form>
 
 <style>
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--plane-1);
+    border: 1px solid var(--line);
+    margin: 8px 0 12px;
+    color: var(--text-3);
+  }
+  .field :global(svg) {
+    flex-shrink: 0;
+  }
+  .field:focus-within {
+    border-color: var(--accent);
+  }
+  input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 18px;
+    color: var(--text);
+    outline: none;
+  }
+  input::-webkit-search-cancel-button {
+    display: none;
+  }
   .clear {
     border: 0;
     background: none;
@@ -38,8 +71,5 @@
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-  input::-webkit-search-cancel-button {
-    display: none;
   }
 </style>

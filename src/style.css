@@ -101,34 +101,6 @@ h1 {
   white-space: nowrap;
 }
 
-/* The search field. */
-.field {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 14px;
-  height: 52px;
-  border-radius: 14px;
-  background: var(--plane-1);
-  border: 1px solid var(--line);
-  margin: 8px 0 12px;
-}
-.field svg {
-  color: var(--text-3);
-  flex-shrink: 0;
-}
-.field input {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-size: 18px;
-  color: var(--text);
-  outline: none;
-}
-
 /* Rows: search results, lists, the signs in a list. */
 .rows {
   list-style: none;
@@ -166,11 +138,6 @@ h1 {
   color: var(--text-3);
   font-size: 15px;
 }
-.chevron {
-  color: var(--text-3);
-  width: 18px;
-  height: 18px;
-}
 
 .icon {
   width: 44px;
@@ -184,22 +151,10 @@ h1 {
   align-items: center;
   justify-content: center;
 }
-.button.more {
-  display: block;
-  width: 100%;
-  margin-top: 12px;
-}
 .section {
   font-size: 13px;
   color: var(--text-3);
   margin: 18px 0 0;
-}
-.icon.filled {
-  color: var(--on-accent);
-  background: var(--accent);
-  height: 46px;
-  width: 46px;
-  border-radius: 12px;
 }
 .icon.danger {
   color: var(--danger);
@@ -251,12 +206,6 @@ input:focus {
   outline: 2px solid var(--accent);
   outline-offset: -1px;
 }
-.field:focus-within {
-  border-color: var(--accent);
-}
-.field input:focus {
-  outline: none;
-}
 .inline {
   display: flex;
   gap: 8px;
@@ -288,55 +237,4 @@ input:focus {
 }
 .note.error {
   color: var(--danger);
-}
-
-/* The tab bar. */
-.tabs {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  background: var(--plane-0);
-  border-top: 1px solid var(--line);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.tabs button {
-  flex: 1;
-  border: 0;
-  background: none;
-  padding: 8px 0 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  font-size: 12px;
-  color: var(--text-3);
-}
-.tabs button.on {
-  color: var(--accent);
-}
-
-/* The add-to-list sheet. */
-.scrim {
-  position: fixed;
-  inset: 0;
-  background: rgb(0 0 0 / 0.4);
-  z-index: 5;
-}
-.sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 6;
-  max-height: 80dvh;
-  overflow-y: auto;
-  background: var(--plane-0);
-  border-radius: 18px 18px 0 0;
-  padding: 16px 16px calc(env(safe-area-inset-bottom) + 16px);
-}
-.sheet-title {
-  font-weight: 600;
-  margin: 4px 0 8px;
 }

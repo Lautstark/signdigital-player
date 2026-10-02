@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { api, app } from "../store.svelte";
-  import { SPEEDS, rateLabel } from "../speed";
+  import { reloadNewest } from "../lib/pwa";
+  import { SPEEDS, rateLabel } from "../lib/speed";
+  import { session } from "../state/session.svelte";
+  import { settings } from "../state/settings.svelte";
   import Login from "./Login.svelte";
 
   const built = new Date(__BUILD__.time).toLocaleString("de-DE", {
@@ -11,23 +13,13 @@
   });
   let reloading = $state(false);
 
-  /* An app started from the iPhone home screen has no reload of its own.
-     Pages are fetched network-first by the service worker, so a reload is
-     enough to get the newest version; the worker is asked to update first
-     so its next start is current too. */
-  async function reload() {
+  function reload() {
     reloading = true;
-    await navigator.serviceWorker
-      ?.getRegistration()
-      .then((r) => r?.update())
-      .catch(() => {});
-    location.reload();
+    reloadNewest();
   }
 
   function logout() {
-    if (!confirm("Abmelden? Danach musst du E-Mail und Passwort neu eingeben.")) return;
-    api.logout();
-    app.refreshLogin();
+    if (confirm("Abmelden? Danach musst du E-Mail und Passwort neu eingeben.")) session.logout();
   }
 </script>
 
@@ -35,11 +27,11 @@
   <h1>Einstellungen</h1>
 
   <p class="section">SIGNdigital</p>
-  {#if app.loggedIn}
+  {#if session.loggedIn}
     <div class="card">
       <div class="card-row">
         <small>Angemeldet als</small>
-        <span class="email">{app.email}</span>
+        <span class="email">{session.email}</span>
       </div>
       <button class="card-row danger" onclick={logout}>Abmelden</button>
     </div>
@@ -52,10 +44,10 @@
     {#each SPEEDS as s (s.rate)}
       <button
         role="radio"
-        aria-checked={app.defaultSpeed === s.rate}
+        aria-checked={settings.defaultSpeed === s.rate}
         aria-label={s.name}
-        class:on={app.defaultSpeed === s.rate}
-        onclick={() => app.setDefaultSpeed(s.rate)}
+        class:on={settings.defaultSpeed === s.rate}
+        onclick={() => settings.setDefaultSpeed(s.rate)}
       >
         {rateLabel(s.rate)}
       </button>

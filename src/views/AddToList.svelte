@@ -1,20 +1,20 @@
 <script lang="ts">
-  import type { SignRef } from "../signdigital";
-  import { app } from "../store.svelte";
-  import Sheet from "../Sheet.svelte";
-  import NewList from "../NewList.svelte";
+  import type { SignRef } from "../lib/signdigital";
+  import { lists } from "../state/lists.svelte";
+  import NewList from "../components/NewList.svelte";
+  import Sheet from "../components/Sheet.svelte";
 
   let { sign, close }: { sign: SignRef; close: () => void } = $props();
 
   function into(id: string) {
-    app.addToList(id, sign);
+    lists.addSigns(id, [sign]);
     close();
   }
 </script>
 
 <Sheet title="„{sign.name}“ in eine Liste" {close}>
   <ul class="rows">
-    {#each app.lists as list (list.id)}
+    {#each lists.all as list (list.id)}
       {@const inside = list.signs.some((s) => s.slug === sign.slug)}
       <li class="row">
         <button class="main" disabled={inside} onclick={() => into(list.id)}>

@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { api, app } from "../store.svelte";
+  import { api } from "../lib/api";
+  import { Refused } from "../lib/signdigital";
+  import { nav } from "../state/nav.svelte";
+  import { session } from "../state/session.svelte";
 
   /* On its own the login has a heading; under Einstellungen the section names it. */
   let { title = true }: { title?: boolean } = $props();
@@ -18,12 +21,11 @@
     busy = true;
     error = null;
     try {
-      await api.login(email.trim(), password);
+      await session.login(email.trim(), password);
       password = "";
-      app.refreshLogin();
-      app.tab = "search";
+      nav.tab = "search";
     } catch (e) {
-      error = e instanceof Error && /^(401|403)/.test(e.message) ? "E-Mail oder Passwort stimmt nicht." : "Anmelden ging nicht. Ist das Handy online?";
+      error = e instanceof Refused ? "E-Mail oder Passwort stimmt nicht." : "Anmelden ging nicht. Ist das Handy online?";
     } finally {
       busy = false;
     }

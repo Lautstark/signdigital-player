@@ -1,11 +1,16 @@
 import { mount } from "svelte";
 import App from "./App.svelte";
+import { registerServiceWorker } from "./lib/pwa";
+import { nav } from "./state/nav.svelte";
+import { player } from "./state/player.svelte";
 import "./style.css";
 
-mount(App, { target: document.getElementById("app")! });
+/* Everything that listens to the browser is wired here, once, rather than
+   when a module happens to be imported. */
+nav.remember();
+nav.openSharedLink();
+addEventListener("hashchange", () => nav.openSharedLink());
+addEventListener("popstate", () => player.closed());
 
-/* The service worker keeps the app itself, so it opens without a network.
-   It never keeps anything from SIGNdigital: see public/sw.js. */
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {});
-}
+mount(App, { target: document.getElementById("app")! });
+registerServiceWorker();

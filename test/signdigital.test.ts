@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type KeyValueStore, Refused, SignDigital } from "../src/signdigital";
+import { type KeyValueStore, Refused, SignDigital } from "../src/lib/signdigital";
 
 class MemoryStore implements KeyValueStore {
   readonly values = new Map<string, string>();
@@ -131,5 +131,44 @@ describe("SignDigital", () => {
 
     expect(links).toEqual(["https://x/1", "https://x/2"]);
     expect(seen[0].body).toEqual([{ file: "a" }, { file: "b" }]);
+  });
+
+  it("fetches a clip whole, past the browser's cache", async () => {
+    const store = new MemoryStore();
+    store.put("signdigital.token", "t1");
+    const inits: (RequestInit | undefined)[] = [];
+    const fetchFn = async (url: string, init?: RequestInit) => {
+      inits.push(init);
+      if (url.includes("/api/signs")) return new Response(JSON.stringify({ data: [SCHMUTZIG] }));
+      if (url.endsWith("/cargo/presigned-url")) return new Response(JSON.stringify(["https://x/clip.mp4"]));
+      return new Response("video-bytes");
+    };
+
+    const clip = await new SignDigital(store, fetchFn).clip("schmutzig");
+
+    expect(await clip.text()).toBe("video-bytes");
+    expect(inits[2]).toEqual({ cache: "no-store" });
+  });
+
+  it("says so when a sign has no video", async () => {
+    const store = new MemoryStore();
+    store.put("signdigital.token", "t1");
+    const { fetchFn } = server(() => [200, { data: [{ name: "x", slug: "x", edge: {} }] }]);
+    await expect(new SignDigital(store, fetchFn).clip("x")).rejects.toThrow("kein Video");
+  });
+
+  it("asks for all card pictures in one request, keyed by slug", async () => {
+    const store = new MemoryStore();
+    store.put("signdigital.token", "t1");
+    const { seen, fetchFn } = server(() => [201, ["https://x/card.jpg"]]);
+    const signs = [
+      { slug: "a", name: "a", videoPath: null, cardPath: "files/a.jpg" },
+      { slug: "b", name: "b", videoPath: null, cardPath: null },
+    ];
+
+    const links = await new SignDigital(store, fetchFn).cardLinks(signs);
+
+    expect(seen).toHaveLength(1);
+    expect([...links]).toEqual([["a", "https://x/card.jpg"]]);
   });
 });

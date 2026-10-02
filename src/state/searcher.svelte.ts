@@ -1,6 +1,6 @@
-import type { Sign } from "./signdigital";
-import { api } from "./store.svelte";
-import { thumbnails } from "./thumbs";
+import { api } from "../lib/api";
+import type { Sign } from "../lib/signdigital";
+import { message } from "../lib/words";
 
 /**
  * One search field's state: what it found, their pictures, whether it is
@@ -47,10 +47,10 @@ export class Searcher {
       this.results = page.signs;
       this.total = page.total;
       this.searched = word;
-      const thumbs = await thumbnails(page.signs);
+      const thumbs = await api.cardLinks(page.signs);
       if (mine === this.run) this.thumbs = thumbs;
     } catch (e) {
-      if (mine === this.run) this.error = e instanceof Error ? e.message : String(e);
+      if (mine === this.run) this.error = message(e);
     } finally {
       if (mine === this.run) this.busy = false;
     }
@@ -73,10 +73,10 @@ export class Searcher {
       this.results = [...this.results, ...added];
       // A page that adds nothing would offer "more" forever.
       this.total = added.length === 0 ? this.results.length : page.total;
-      const thumbs = await thumbnails(added);
+      const thumbs = await api.cardLinks(added);
       if (mine === this.run) this.thumbs = new Map([...this.thumbs, ...thumbs]);
     } catch (e) {
-      if (mine === this.run) this.error = e instanceof Error ? e.message : String(e);
+      if (mine === this.run) this.error = message(e);
     } finally {
       if (mine === this.run) this.busy = false;
     }

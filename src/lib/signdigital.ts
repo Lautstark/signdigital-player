@@ -104,6 +104,34 @@ export class SignDigital {
     )) as string[];
   }
 
+  /** Several signs by slug, in that order; one that cannot be found is left out. */
+  async signs(slugs: string[]): Promise<Sign[]> {
+    const found = await Promise.all(slugs.map((slug) => this.sign(slug).catch(() => null)));
+    return found.filter((s): s is Sign => s !== null);
+  }
+
+  /** Card-picture links for signs, in one request, keyed by slug. */
+  async cardLinks(signs: Sign[]): Promise<Map<string, string>> {
+    const withCard = signs.filter((s): s is Sign & { cardPath: string } => s.cardPath !== null);
+    const links = await this.links(withCard.map((s) => s.cardPath));
+    return new Map(withCard.map((s, i) => [s.slug, links[i]]));
+  }
+
+  /**
+   * A sign's video, fetched whole into memory. The signed link expires after
+   * 60 seconds, and a looping video asks again for parts of the file, Safari
+   * especially; played from memory, the expired link is never asked again.
+   * `no-store` keeps it out of the browser's cache: nothing outlives watching.
+   */
+  async clip(slug: string): Promise<Blob> {
+    const sign = await this.sign(slug);
+    if (!sign?.videoPath) throw new Error("Zu dieser Gebärde gibt es kein Video.");
+    const [link] = await this.links([sign.videoPath]);
+    const response = await this.fetchFn(link, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Video nicht geladen (HTTP ${response.status}).`);
+    return response.blob();
+  }
+
   /** Runs a request with the saved token; a refused one logs in again, once. */
   private async authed(method: string, path: string, body?: unknown): Promise<unknown> {
     try {
