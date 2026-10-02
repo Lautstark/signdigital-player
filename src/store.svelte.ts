@@ -1,5 +1,6 @@
 import { type KeyValueStore, type SignRef, SignDigital } from "./signdigital";
 import { isRate, type Rate } from "./speed";
+import { freeName, listFromLink, type SharedList } from "./share";
 
 /**
  * localStorage, which can throw (blocked site data, a private window). A store
@@ -87,6 +88,8 @@ class App {
   query = $state.raw(place.query);
   /** The speed every video starts at; set under Einstellungen. */
   defaultSpeed = $state.raw<Rate>(readSpeed());
+  /** The import sheet: closed, asking for a link, or showing a list to take over. */
+  importing = $state.raw<{ list: SharedList | null } | null>(null);
   /** The speed of what is playing: the default, until changed in the player. */
   speed = $state.raw<Rate>(this.defaultSpeed);
 
@@ -129,6 +132,17 @@ class App {
     );
   }
 
+  /** Takes a shared list over as a new one; a name already in use gets a number. */
+  importList(shared: SharedList): List {
+    const list = {
+      id: crypto.randomUUID(),
+      name: freeName(shared.name, this.lists.map((l) => l.name)),
+      signs: shared.signs.map(({ slug, name }) => ({ slug, name })),
+    };
+    this.saveLists([...this.lists, list]);
+    return list;
+  }
+
   removeFromList(id: string, slug: string) {
     this.saveLists(this.lists.map((l) => (l.id === id ? { ...l, signs: l.signs.filter((s) => s.slug !== slug) } : l)));
   }
@@ -159,6 +173,17 @@ $effect.root(() => {
     local.put(KEY_PLACE, JSON.stringify({ tab: app.tab, openList: app.openList, query: app.query } satisfies Place));
   });
 });
+
+/* Opened from a shared link: show the list, and take the link out of the
+   address so a reload or the home screen does not offer it again. */
+function openSharedLink() {
+  const shared = listFromLink(location.hash);
+  if (!shared) return;
+  history.replaceState(history.state, "", location.pathname + location.search);
+  app.importing = { list: shared };
+}
+openSharedLink();
+addEventListener("hashchange", openSharedLink);
 
 addEventListener("popstate", () => {
   app.playing = null;

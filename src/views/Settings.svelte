@@ -31,7 +31,7 @@
   }
 </script>
 
-<div class="page">
+<div class="page settings">
   <h1>Einstellungen</h1>
 
   <p class="section" id="speed-label">Geschwindigkeit, mit der Videos starten</p>
@@ -69,6 +69,12 @@
 </div>
 
 <style>
+  /* The page fills the screen, so the version line can sit at its foot. */
+  .settings {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
   .section {
     margin-bottom: 8px;
   }
@@ -126,7 +132,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-top: 32px;
+    margin-top: auto;
+    padding-top: 32px;
     font-size: 13px;
     color: var(--text-3);
   }

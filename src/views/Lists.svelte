@@ -6,8 +6,11 @@
   import SearchField from "../SearchField.svelte";
   import SearchResults from "../SearchResults.svelte";
   import { Searcher } from "../searcher.svelte";
+  import NewList from "../NewList.svelte";
+  import { listFromLink, shareLink } from "../share";
+  import { appUrl, isApple } from "../platform";
+  import { GEAR } from "../icons";
 
-  let newName = $state("");
   let editing = $state(false);
   let thumbs = $state.raw(new Map<string, string>());
 
@@ -24,12 +27,33 @@
 
   const list = $derived(app.lists.find((l) => l.id === app.openList) ?? null);
 
-  function create(e: SubmitEvent) {
-    e.preventDefault();
-    const name = newName.trim();
-    if (!name) return;
-    app.addList(name);
-    newName = "";
+  /* The phone's own share menu, which has "Kopieren" in it too. A browser
+     without one gets the link copied instead. */
+  let copied = $state(false);
+  async function share() {
+    if (!list) return;
+    const url = shareLink(list, appUrl);
+    if (navigator.share) {
+      await navigator.share({ title: list.name, text: `Gebärden-Liste „${list.name}“`, url }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(url).catch(() => {});
+      copied = true;
+      setTimeout(() => (copied = false), 2000);
+    }
+  }
+
+  /* The clipboard is read inside the tap, which is the only time iOS allows
+     it (and then asks with "Einsetzen"). Without a list link in it, the sheet
+     asks for one. */
+  function openImport() {
+    app.importing = { list: null };
+    navigator.clipboard
+      ?.readText()
+      .then((text) => {
+        const found = listFromLink(text);
+        if (found && app.importing && !app.importing.list) app.importing = { list: found };
+      })
+      .catch(() => {});
   }
 
   /* Pictures for the open list. A list keeps slugs and names only; the
@@ -70,7 +94,22 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
       </button>
       <h1>{list.name}</h1>
-      <button class="text" onclick={() => (editing = !editing)}>{editing ? "Fertig" : "Bearbeiten"}</button>
+      <button class="icon" aria-label={copied ? "Link kopiert" : "Liste teilen"} onclick={share}>
+        {#if copied}
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
+        {:else if isApple}
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1" /></svg>
+        {:else}
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" /><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4" /></svg>
+        {/if}
+      </button>
+      <button class="icon" class:on={editing} aria-label={editing ? "Fertig" : "Liste bearbeiten"} aria-pressed={editing} onclick={() => (editing = !editing)}>
+        {#if editing}
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
+        {:else}
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d={GEAR} /></svg>
+        {/if}
+      </button>
     </div>
 
     {#if !editing}
@@ -133,9 +172,24 @@
         </li>
       {/each}
     </ul>
-    <form class="inline" onsubmit={create}>
-      <input placeholder="Neue Liste" bind:value={newName} enterkeyhint="done" />
-      <button class="button" type="submit">Anlegen</button>
-    </form>
+    <NewList />
+    <button class="button import" onclick={openImport}>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M5 21h14" /></svg>
+      Liste importieren
+    </button>
   {/if}
 </div>
+
+<style>
+  .icon.on {
+    color: var(--accent);
+  }
+  .import {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 12px;
+  }
+</style>
