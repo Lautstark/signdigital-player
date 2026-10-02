@@ -55,12 +55,6 @@
     leave();
   }
 
-  function takeOut(slug: string, name: string) {
-    if (!list) return;
-    if (!confirm(`„${name}“ aus „${list.name}“ nehmen?`)) return;
-    app.removeFromList(list.id, slug);
-  }
-
   function rename() {
     if (!list) return;
     const name = prompt("Neuer Name", list.name)?.trim();
@@ -110,6 +104,11 @@
             </li>
           {/each}
         </ul>
+        {#if search.hasMore}
+          <button class="button more" disabled={search.busy} onclick={() => search.more()}>
+            {search.busy ? "Lädt …" : `Mehr anzeigen (${search.total - search.results.length} weitere)`}
+          </button>
+        {/if}
         <p class="section">In der Liste</p>
       {/if}
     {/if}
@@ -121,13 +120,15 @@
     <ul class="rows">
       {#each list.signs as sign (sign.slug)}
         <li class="row">
-          <button class="main" onclick={() => app.play(sign, list.id)}>
+          <button class="main" disabled={editing} onclick={() => app.play(sign, list.id)}>
             <Thumb src={thumbs.get(sign.slug)} />
             <span class="name">{sign.name}</span>
           </button>
-          <button class="icon" aria-label="{sign.name} aus der Liste nehmen" onclick={() => takeOut(sign.slug, sign.name)}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>
-          </button>
+          {#if editing}
+            <button class="icon danger" aria-label="{sign.name} entfernen" onclick={() => app.removeFromList(list.id, sign.slug)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
+          {/if}
         </li>
       {/each}
     </ul>
