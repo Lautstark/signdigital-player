@@ -1,4 +1,5 @@
 import { type KeyValueStore, type SignRef, SignDigital } from "./signdigital";
+import { isRate, type Rate } from "./speed";
 
 /**
  * localStorage, which can throw (blocked site data, a private window). A store
@@ -30,10 +31,12 @@ export interface List {
   signs: SignRef[];
 }
 
-export type Tab = "search" | "lists" | "account";
+export const TABS = ["search", "lists", "settings"] as const;
+export type Tab = (typeof TABS)[number];
 
 const KEY_LISTS = "lists";
 const KEY_PLACE = "place";
+const KEY_SPEED = "speed";
 
 /** Where the app was left: tab, open list, search word. Restored on the next open. */
 interface Place {
@@ -45,13 +48,20 @@ interface Place {
 function readPlace(): Place {
   const fallback: Place = { tab: "search", openList: null, query: "" };
   try {
-    return { ...fallback, ...JSON.parse(local.get(KEY_PLACE) ?? "{}") };
+    const read = { ...fallback, ...JSON.parse(local.get(KEY_PLACE) ?? "{}") };
+    // A tab that no longer exists (Konto became Einstellungen) opens the search.
+    return TABS.includes(read.tab) ? read : { ...read, tab: fallback.tab };
   } catch {
     return fallback;
   }
 }
 
 const place = readPlace();
+
+function readSpeed(): Rate {
+  const stored = Number(local.get(KEY_SPEED));
+  return isRate(stored) ? stored : 1;
+}
 
 function readLists(): List[] {
   try {
@@ -75,10 +85,19 @@ class App {
   /** The list it was started from; its neighbours there are offered on pause. */
   playingFrom = $state.raw<string | null>(null);
   query = $state.raw(place.query);
+  /** The speed every video starts at; set under Einstellungen. */
+  defaultSpeed = $state.raw<Rate>(readSpeed());
+  /** The speed of what is playing: the default, until changed in the player. */
+  speed = $state.raw<Rate>(this.defaultSpeed);
 
   refreshLogin() {
     this.loggedIn = api.loggedIn;
     this.email = api.email;
+  }
+
+  setDefaultSpeed(rate: Rate) {
+    this.defaultSpeed = rate;
+    local.put(KEY_SPEED, String(rate));
   }
 
   private saveLists(lists: List[]) {
@@ -119,9 +138,10 @@ class App {
     history.pushState({ playing: true }, "");
     this.playing = sign;
     this.playingFrom = fromList;
+    this.speed = this.defaultSpeed;
   }
 
-  /** Moves to another sign of the same list, in place: no new history entry. */
+  /** Moves to another sign of the same list, in place: no new history entry. The speed stays. */
   step(sign: SignRef) {
     this.playing = sign;
   }

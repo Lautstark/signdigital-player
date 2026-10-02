@@ -4,6 +4,7 @@
   import { thumbnails } from "../thumbs";
   import Thumb from "../Thumb.svelte";
   import SearchField from "../SearchField.svelte";
+  import SearchResults from "../SearchResults.svelte";
   import { Searcher } from "../searcher.svelte";
 
   let newName = $state("");
@@ -75,40 +76,20 @@
     {#if !editing}
       <SearchField bind:value={query} placeholder="Gebärde hinzufügen" {search} />
 
-      {#if search.error}
-        <p class="note error">{search.error}</p>
-      {:else if search.busy && search.results.length === 0}
-        <p class="note">Suche …</p>
-      {:else if search.searched && search.results.length === 0}
-        <p class="note">Keine Gebärde „{search.searched}“ gefunden.</p>
-      {/if}
-
+      <SearchResults {search}>
+        {#snippet action(sign: Sign)}
+          {#if list.signs.some((s) => s.slug === sign.slug)}
+            <span class="icon" aria-label="{sign.name} ist in der Liste">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
+            </span>
+          {:else}
+            <button class="icon" aria-label="{sign.name} zu {list.name}" onclick={() => app.addToList(list.id, sign)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+          {/if}
+        {/snippet}
+      </SearchResults>
       {#if search.results.length > 0}
-        <ul class="rows">
-          {#each search.results as sign (sign.slug)}
-            {@const inside = list.signs.some((s) => s.slug === sign.slug)}
-            <li class="row">
-              <button class="main" onclick={() => app.play(sign)}>
-                <Thumb src={search.thumbs.get(sign.slug)} />
-                <span class="name">{sign.name}</span>
-              </button>
-              {#if inside}
-                <span class="icon" aria-label="{sign.name} ist in der Liste">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
-                </span>
-              {:else}
-                <button class="icon" aria-label="{sign.name} zu {list.name}" onclick={() => app.addToList(list.id, sign)}>
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-                </button>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-        {#if search.hasMore}
-          <button class="button more" disabled={search.busy} onclick={() => search.more()}>
-            {search.busy ? "Lädt …" : `Mehr anzeigen (${search.total - search.results.length} weitere)`}
-          </button>
-        {/if}
         <p class="section">In der Liste</p>
       {/if}
     {/if}

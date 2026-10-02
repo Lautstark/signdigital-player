@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { SignRef } from "../signdigital";
   import { api, app } from "../store.svelte";
+  import { nextRate, rateLabel, SPEEDS } from "../speed";
 
   let { sign }: { sign: SignRef } = $props();
 
@@ -70,6 +71,16 @@
     if (video.paused) video.play();
   }
 
+  /* The speed lives in the app, not here: stepping to the next sign of a list
+     builds a new player and the speed goes with it. */
+  $effect(() => {
+    if (!video) return;
+    video.defaultPlaybackRate = app.speed;
+    video.playbackRate = app.speed;
+  });
+
+  const speedName = $derived(SPEEDS.find((s) => s.rate === app.speed)?.name ?? "");
+
   function toggle() {
     if (!video) return;
     if (video.paused) video.play();
@@ -96,22 +107,8 @@
       </button>
       {#if neighbours.before || neighbours.after}
         <div class="steps">
-          {#if neighbours.before}
-            {@const before = neighbours.before}
-            <button class="step" onclick={() => app.step(before)}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
-              <span><small>vorher</small>{before.name}</span>
-            </button>
-          {:else}
-            <span></span>
-          {/if}
-          {#if neighbours.after}
-            {@const after = neighbours.after}
-            <button class="step after" onclick={() => app.step(after)}>
-              <span><small>danach</small>{after.name}</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
-            </button>
-          {/if}
+          {@render step(neighbours.before, "vorher")}
+          {@render step(neighbours.after, "danach")}
         </div>
       {/if}
     {/if}
@@ -125,14 +122,32 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
   </button>
   {#if src}
-    <button class="round sound" aria-label={muted ? "Ton an" : "Ton aus"} aria-pressed={!muted} onclick={toggleSound}>
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 9v6h4l5 4V5L8 9z" />
-        {#if muted}<path d="M17 9l5 6M22 9l-5 6" />{:else}<path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />{/if}
-      </svg>
-    </button>
+    <div class="corner">
+      <button class="pill" aria-label="Geschwindigkeit: {speedName}, antippen zum Wechseln" onclick={() => (app.speed = nextRate(app.speed))}>
+        {rateLabel(app.speed)}
+      </button>
+      <button class="round" aria-label={muted ? "Ton an" : "Ton aus"} aria-pressed={!muted} onclick={toggleSound}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9v6h4l5 4V5L8 9z" />
+          {#if muted}<path d="M17 9l5 6M22 9l-5 6" />{:else}<path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />{/if}
+        </svg>
+      </button>
+    </div>
   {/if}
 </div>
+
+<!-- The sign before or after this one in its list; an empty cell keeps "danach" on the right. -->
+{#snippet step(to: SignRef | null, label: "vorher" | "danach")}
+  {#if to}
+    <button class="step" class:after={label === "danach"} onclick={() => app.step(to)}>
+      {#if label === "vorher"}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{/if}
+      <span><small>{label}</small>{to.name}</span>
+      {#if label === "danach"}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>{/if}
+    </button>
+  {:else}
+    <span></span>
+  {/if}
+{/snippet}
 
 <style>
   .player {
@@ -149,9 +164,27 @@
     height: 100%;
     object-fit: contain;
   }
-  .round {
+  .back,
+  .corner {
     position: absolute;
     top: calc(env(safe-area-inset-top) + 12px);
+  }
+  .corner {
+    right: calc(env(safe-area-inset-right) + 12px);
+    display: flex;
+    gap: 8px;
+  }
+  .pill {
+    height: 44px;
+    min-width: 64px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 22px;
+    background: rgb(255 255 255 / 0.16);
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .round {
     width: 44px;
     height: 44px;
     padding: 0;
@@ -167,9 +200,6 @@
   }
   .back {
     left: calc(env(safe-area-inset-left) + 12px);
-  }
-  .sound {
-    right: calc(env(safe-area-inset-right) + 12px);
   }
   .resume {
     position: absolute;
