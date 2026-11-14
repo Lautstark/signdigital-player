@@ -3,16 +3,21 @@
   import Icon from "./Icon.svelte";
 
   let { value = $bindable(), placeholder, search }: { value: string; placeholder: string; search: Searcher } = $props();
+  let input: HTMLInputElement;
 
+  // The keyboard stays up: the × never takes focus, and the field gets it back
+  // in case the tap blurred it anyway.
   function clear() {
     value = "";
     search.now("");
+    input.focus();
   }
 </script>
 
 <form class="field" role="search" onsubmit={(e) => (e.preventDefault(), search.now(value))}>
   <Icon name="search" />
   <input
+    bind:this={input}
     type="search"
     {placeholder}
     autocomplete="off"
@@ -22,7 +27,7 @@
     oninput={() => search.typed(value)}
   />
   {#if value}
-    <button type="button" class="clear" aria-label="Suche leeren" onclick={clear}>
+    <button type="button" class="clear" aria-label="Suche leeren" onpointerdown={(e) => e.preventDefault()} onclick={clear}>
       <Icon name="close" />
     </button>
   {/if}
