@@ -1,14 +1,16 @@
 # signdigital-player
 
 Gebärden von [SIGNdigital](https://sign-digital.de) auf dem Handy: suchen, im
-Vollbild im Loop abspielen, antippen zum Pausieren, die Lernlisten aus dem
-eigenen Konto durchgehen.
+Vollbild im Loop abspielen, antippen zum Pausieren, die Lernlisten des eigenen
+Kontos durchgehen, anlegen und ändern.
 Eine PWA für Android und iPhone. Sie braucht ein eigenes SIGNdigital-Abo.
 
 Die Anmeldung bleibt auf dem Handy und geht nur an sign-digital.de. Läuft sie
 ab, meldet sich die App selbst neu an. Videos werden zum Anschauen in den
-Arbeitsspeicher geladen und nirgends gespeichert. Die App liest nur: Listen
-legst du auf sign-digital.de als Lernliste an und änderst sie dort.
+Arbeitsspeicher geladen und nirgends gespeichert. Die Listen sind die
+Lernlisten im SIGNdigital-Konto: Was du in der App anlegst, änderst oder
+löschst, geschieht dort, und was du auf sign-digital.de änderst, steht nach
+dem nächsten Laden in der App.
 
 ## Aufs Handy
 

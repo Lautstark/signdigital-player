@@ -7,10 +7,8 @@
  * ones the site's own player uses: `POST /api/authentication` for a token,
  * `GET /api/signs?slug=…` for a sign, `GET /search/query` for the search,
  * `POST /cargo/presigned-url` for links that expire after 60 seconds,
- * `GET /api/lists` for the account's Lernlisten.
- *
- * The app only reads. Lists are made and changed on sign-digital.de; nothing
- * here writes to the account.
+ * `GET /api/lists` for the account's Lernlisten, and the site's own writes to
+ * them (measured on 2026-11-08 and 2026-11-14, see `createList` and below).
  *
  * Nothing is written to disk. Their terms allow watching through a
  * subscription and do not allow keeping the file.
@@ -29,6 +27,8 @@ export interface SignRef {
 
 /** A sign as the server describes it, with the storage paths of its files. */
 export interface Sign extends SignRef {
+  /** SIGNdigital's own id; a Lernliste holds its signs by it. */
+  id: string;
   videoPath: string | null;
   cardPath: string | null;
 }
@@ -129,6 +129,81 @@ export class SignDigital {
     }
   }
 
+  /**
+   * Makes an empty Lernliste in the account's own folder, the way the site
+   * does it (measured 2026-11-14 with a throwaway list): a folder entry, the
+   * list pointing at it, then the entry pointing back at the list. A list
+   * that could not be made takes its half-made entry with it.
+   */
+  async createList(name: string): Promise<Lernliste> {
+    const owner = ownerOf(this.store.get(KEY_TOKEN));
+    const node = (await this.authed("POST", "/api/file-nodes", {
+      name,
+      nodeType: "file",
+      path: `,user_${owner},`,
+      fileType: "lists",
+      fileDetails: {},
+    })) as Record<string, unknown> & { _id: string };
+    try {
+      const list = (await this.authed("POST", "/api/lists", { ownerType: "users", owner, author: owner, name, node: node._id })) as {
+        _id: string;
+      };
+      await this.authed("PATCH", `/api/file-nodes/${encodeURIComponent(node._id)}`, { ...node, file: list._id });
+      return await this.list(list._id);
+    } catch (e) {
+      await this.authed("DELETE", `/api/file-nodes/${encodeURIComponent(node._id)}`).catch(() => {});
+      throw e;
+    }
+  }
+
+  /** Renames a Lernliste. The site sends the name alone and renames the folder entry itself. */
+  async renameList(id: string, name: string): Promise<Lernliste> {
+    await this.authed("PATCH", `/api/lists/${encodeURIComponent(id)}`, { name });
+    return this.list(id);
+  }
+
+  /**
+   * Changes the signs in a Lernliste the way the site does: the whole
+   * document goes back with one PATCH, its signs as ids in order. It is read
+   * fresh right before, so a change made on the site in the meantime is kept,
+   * and only what `edit` added or took out is applied to it. A sign the app
+   * cannot show (no slug) stays where it was. The list is read again after,
+   * so what shows is what the site now holds.
+   */
+  async changeSigns(id: string, edit: (signs: Sign[]) => Sign[]): Promise<Lernliste> {
+    const path = `/api/lists/${encodeURIComponent(id)}`;
+    const doc = (await this.authed("GET", path)) as Record<string, unknown> & { signs?: unknown[]; learnedSigns?: unknown[] };
+    const before = toList(doc);
+    if (!before) throw new Error("Diese Liste gibt es nicht mehr.");
+    const after = edit(before.signs);
+    const had = new Set(before.signs.map((s) => s.id));
+    const has = new Set(after.map((s) => s.id));
+    const signs = [
+      ...idsOf(doc.signs).filter((sign) => !had.has(sign) || has.has(sign)),
+      ...after.map((s) => s.id).filter((sign) => !had.has(sign)),
+    ];
+    await this.authed("PATCH", path, { ...doc, signs, learnedSigns: idsOf(doc.learnedSigns) });
+    return this.list(id);
+  }
+
+  /** One Lernliste as the site holds it now. */
+  private async list(id: string): Promise<Lernliste> {
+    const list = toList(await this.authed("GET", `/api/lists/${encodeURIComponent(id)}`));
+    if (!list) throw new Error("Diese Liste gibt es nicht mehr.");
+    return list;
+  }
+
+  /**
+   * Deletes a Lernliste for good. The site deletes its folder entry
+   * (`DELETE /api/file-nodes/<node>`) and the list goes with it; the node is
+   * the list's `node` field.
+   */
+  async deleteList(id: string): Promise<void> {
+    const doc = (await this.authed("GET", `/api/lists/${encodeURIComponent(id)}`)) as { node?: unknown };
+    if (typeof doc.node !== "string" || !doc.node) throw new Error("Die Liste hat keinen Ordner-Eintrag; nichts gelöscht.");
+    await this.authed("DELETE", `/api/file-nodes/${encodeURIComponent(doc.node)}`);
+  }
+
   /** Links for storage paths, in the same order. They expire after 60 seconds. */
   async links(paths: string[]): Promise<string[]> {
     if (paths.length === 0) return [];
@@ -194,13 +269,16 @@ export class SignDigital {
     const where = `${method} ${path.split("?")[0]}`;
     if (response.status === 401 || response.status === 403) throw new Refused(`${response.status} für ${where}`);
     if (!response.ok) throw new Error(`HTTP ${response.status} für ${where}`);
-    return response.json();
+    // A write may answer with nothing.
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
   }
 }
 
 function toSign(raw: unknown): Sign {
-  const r = raw as { name?: string; slug?: string; edge?: Record<string, Record<string, string> | undefined> };
+  const r = raw as { _id?: string; name?: string; slug?: string; edge?: Record<string, Record<string, string> | undefined> };
   return {
+    id: r._id ?? "",
     slug: r.slug ?? "",
     name: r.name ?? r.slug ?? "",
     videoPath: pick(r.edge?.signVideo, VIDEO_VARIANTS),
@@ -212,6 +290,13 @@ function toList(raw: unknown): Lernliste | null {
   const r = raw as { _id?: string; name?: string; signs?: unknown[] };
   if (!r._id) return null;
   return { id: r._id, name: r.name || "Lernliste", signs: (r.signs ?? []).map(toSign).filter((s) => s.slug) };
+}
+
+/** Signs as ids, whether the site sent them filled in or as ids already. */
+function idsOf(signs: unknown[] | undefined): string[] {
+  return (signs ?? [])
+    .map((s) => (typeof s === "string" ? s : (s as { _id?: unknown } | null)?._id))
+    .filter((s): s is string => typeof s === "string" && s !== "");
 }
 
 /** The user id inside a token, which is what the site asks for lists with. */

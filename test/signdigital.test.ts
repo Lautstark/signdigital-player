@@ -71,7 +71,7 @@ describe("SignDigital", () => {
     const sign = await new SignDigital(store, fetchFn).sign("schmutzig");
 
     expect(seen[0].auth).toBe("t1");
-    expect(sign).toEqual({ slug: "schmutzig", name: "schmutzig", videoPath: "files/d.mp4", cardPath: "files/schmutzig_sb.jpg" });
+    expect(sign).toEqual({ id: "", slug: "schmutzig", name: "schmutzig", videoPath: "files/d.mp4", cardPath: "files/schmutzig_sb.jpg" });
   });
 
   it("logs in again, once, when the token has run out", async () => {
@@ -162,8 +162,8 @@ describe("SignDigital", () => {
     store.put("signdigital.token", "t1");
     const { seen, fetchFn } = server(() => [201, ["https://x/card.jpg"]]);
     const signs = [
-      { slug: "a", name: "a", videoPath: null, cardPath: "files/a.jpg" },
-      { slug: "b", name: "b", videoPath: null, cardPath: null },
+      { id: "1", slug: "a", name: "a", videoPath: null, cardPath: "files/a.jpg" },
+      { id: "2", slug: "b", name: "b", videoPath: null, cardPath: null },
     ];
 
     const links = await new SignDigital(store, fetchFn).cardLinks(signs);
@@ -191,5 +191,105 @@ describe("SignDigital", () => {
       ["l1", "Halloween", ["schmutzig"]],
       ["l2", "Lernliste", []],
     ]);
+  });
+  const DOC = {
+    _id: "l1",
+    name: "Halloween",
+    node: "n1",
+    owner: "u1",
+    signs: [{ _id: "s1", slug: "a", name: "a" }, { _id: "s2", name: "ohne Slug" }, { _id: "s3", slug: "c", name: "c" }],
+    learnedSigns: [{ _id: "s1" }],
+  };
+  const sign = (id: string, slug: string) => ({ id, slug, name: slug, videoPath: null, cardPath: null });
+
+  it("changes the signs with one PATCH of the whole, freshly read document, then reads it back", async () => {
+    const store = new MemoryStore();
+    store.put("signdigital.token", "t1");
+    const { seen, fetchFn } = server((s) => (s.method === "GET" ? [200, DOC] : [200, {}]));
+
+    const changed = await new SignDigital(store, fetchFn).changeSigns("l1", (signs) => [...signs.filter((s) => s.id !== "s1"), sign("s4", "d")]);
+
+    expect(seen.map((s) => [s.method, new URL(s.url).pathname])).toEqual([
+      ["GET", "/api/lists/l1"],
+      ["PATCH", "/api/lists/l1"],
+      ["GET", "/api/lists/l1"],
+    ]);
+    // s2 cannot be shown but stays in place; s4 goes at the end; ids only.
+    expect(seen[1].body).toMatchObject({ _id: "l1", node: "n1", owner: "u1", name: "Halloween", signs: ["s2", "s3", "s4"], learnedSigns: ["s1"] });
+    // What shows is what the site holds afterwards (here: the fake's unchanged DOC).
+    expect(changed.signs.map((s) => s.id)).toEqual(["s1", "s3"]);
+  });
+
+  it("renames with the name alone, as the site does", async () => {
+    const store = new MemoryStore();
+    store.put("signdigital.token", "t1");
+    const { seen, fetchFn } = server((s) => (s.method === "GET" ? [200, { ...DOC, name: "Herbst" }] : [200, {}]));
+
+    const renamed = await new SignDigital(store, fetchFn).renameList("l1", "Herbst");
+
+    expect(seen[0]).toMatchObject({ method: "PATCH", body: { name: "Herbst" } });
+    expect(renamed.name).toBe("Herbst");
+  });
+
+  it("makes a list the way the site does: folder entry, list, entry pointing back", async () => {
+    const store = new MemoryStore();
+    store.put("signdigital.token", `h.${btoa(JSON.stringify({ sub: "u1" }))}.s`);
+    const node = { _id: "n9", name: "Neu", nodeType: "file", path: ",user_u1,", fileType: "lists" };
+    const { seen, fetchFn } = server((s) => {
+      const path = new URL(s.url).pathname;
+      if (s.method === "POST" && path === "/api/file-nodes") return [201, node];
+      if (s.method === "POST" && path === "/api/lists") return [201, { _id: "l9" }];
+      if (s.method === "GET") return [200, { _id: "l9", name: "Neu", node: "n9", signs: [] }];
+      return [200, {}];
+    });
+
+    const made = await new SignDigital(store, fetchFn).createList("Neu");
+
+    expect(seen.map((s) => [s.method, new URL(s.url).pathname])).toEqual([
+      ["POST", "/api/file-nodes"],
+      ["POST", "/api/lists"],
+      ["PATCH", "/api/file-nodes/n9"],
+      ["GET", "/api/lists/l9"],
+    ]);
+    expect(seen[0].body).toEqual({ name: "Neu", nodeType: "file", path: ",user_u1,", fileType: "lists", fileDetails: {} });
+    expect(seen[1].body).toEqual({ ownerType: "users", owner: "u1", author: "u1", name: "Neu", node: "n9" });
+    expect(seen[2].body).toMatchObject({ _id: "n9", file: "l9" });
+    expect(made).toEqual({ id: "l9", name: "Neu", signs: [] });
+  });
+
+  it("takes the folder entry back when the list itself could not be made", async () => {
+    const store = new MemoryStore();
+    store.put("signdigital.token", `h.${btoa(JSON.stringify({ sub: "u1" }))}.s`);
+    const { seen, fetchFn } = server((s) => {
+      const path = new URL(s.url).pathname;
+      if (path === "/api/file-nodes") return [201, { _id: "n9" }];
+      if (path === "/api/lists") return [500, {}];
+      return [200, {}];
+    });
+
+    await expect(new SignDigital(store, fetchFn).createList("Neu")).rejects.toThrow();
+    expect(seen.at(-1)).toMatchObject({ method: "DELETE", url: "https://sign-digital.de/api/file-nodes/n9" });
+  });
+
+  it("deletes a list by its folder entry", async () => {
+    const store = new MemoryStore();
+    store.put("signdigital.token", "t1");
+    const { seen, fetchFn } = server((s) => (s.method === "GET" ? [200, DOC] : [200, {}]));
+
+    await new SignDigital(store, fetchFn).deleteList("l1");
+
+    expect(seen.map((s) => [s.method, new URL(s.url).pathname])).toEqual([
+      ["GET", "/api/lists/l1"],
+      ["DELETE", "/api/file-nodes/n1"],
+    ]);
+  });
+
+  it("deletes nothing when the list has no folder entry", async () => {
+    const store = new MemoryStore();
+    store.put("signdigital.token", "t1");
+    const { seen, fetchFn } = server(() => [200, { ...DOC, node: undefined }]);
+
+    await expect(new SignDigital(store, fetchFn).deleteList("l1")).rejects.toThrow();
+    expect(seen.every((s) => s.method === "GET")).toBe(true);
   });
 });

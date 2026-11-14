@@ -2,6 +2,7 @@
   import { lists } from "../state/lists.svelte";
   import { nav } from "../state/nav.svelte";
   import Icon from "../components/Icon.svelte";
+  import NewList from "../components/NewList.svelte";
 
   /* The lists live in the account; each visit asks again, and the kept copy
      stands until the answer is there. */
@@ -19,7 +20,7 @@
 
   {#if lists.all.length === 0}
     <p class="note">
-      {lists.busy ? "Lädt …" : "In deinem Konto gibt es noch keine Lernliste. Leg eine auf sign-digital.de an, dann steht sie hier."}
+      {lists.busy ? "Lädt …" : "In deinem Konto gibt es noch keine Lernliste. Leg unten eine an."}
     </p>
   {/if}
 
@@ -35,7 +36,8 @@
     {/each}
   </ul>
 
-  <p class="note">Listen legst du auf sign-digital.de als Lernliste an und änderst sie dort.</p>
+  <NewList created={(list) => (nav.openList = list.id)} />
+  <p class="note">Deine Listen sind die Lernlisten in deinem SIGNdigital-Konto. Was du hier änderst, ändert sich auch dort.</p>
   <button class="button reload" disabled={lists.busy} onclick={() => lists.load()}>
     {lists.busy ? "Lädt …" : "Neu laden"}
   </button>
