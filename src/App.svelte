@@ -1,11 +1,9 @@
 <script lang="ts">
   import type { IconName } from "./lib/icons";
-  import { lists } from "./state/lists.svelte";
   import { nav, type Tab } from "./state/nav.svelte";
   import { player } from "./state/player.svelte";
   import { session } from "./state/session.svelte";
   import Icon from "./components/Icon.svelte";
-  import ImportSheet from "./views/ImportSheet.svelte";
   import Lists from "./views/Lists.svelte";
   import Login from "./views/Login.svelte";
   import Player from "./views/Player.svelte";
@@ -18,11 +16,9 @@
     { id: "settings", label: "Einstellungen", icon: "gear" },
   ];
 
-  /* The very first open has nothing to show but the login, so it gets the
-     whole screen. Once there are lists, a logged-out app keeps its tabs and
-     the login sits under Einstellungen. */
-  const welcome = $derived(!session.loggedIn && lists.all.length === 0);
-  const shown = $derived<Tab>(session.loggedIn ? nav.tab : "settings");
+  /* Search, lists and videos all need the login, so without one it gets the
+     whole screen. */
+  const welcome = $derived(!session.loggedIn);
 </script>
 
 {#if welcome}
@@ -33,9 +29,9 @@
   </main>
 {:else}
   <main>
-    {#if shown === "search"}
+    {#if nav.tab === "search"}
       <Search />
-    {:else if shown === "lists"}
+    {:else if nav.tab === "lists"}
       <Lists />
     {:else}
       <Settings />
@@ -44,16 +40,12 @@
 
   <nav class="tabs">
     {#each tabs as t (t.id)}
-      <button class:on={shown === t.id} aria-current={shown === t.id ? "page" : undefined} onclick={() => (nav.tab = t.id)}>
+      <button class:on={nav.tab === t.id} aria-current={nav.tab === t.id ? "page" : undefined} onclick={() => (nav.tab = t.id)}>
         <Icon name={t.icon} />
         {t.label}
       </button>
     {/each}
   </nav>
-{/if}
-
-{#if nav.importing}
-  <ImportSheet />
 {/if}
 
 {#if player.playing}

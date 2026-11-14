@@ -1,13 +1,10 @@
 <script lang="ts">
-  import type { Snippet } from "svelte";
-  import type { Sign } from "../lib/signdigital";
   import type { Searcher } from "../state/searcher.svelte";
   import { player } from "../state/player.svelte";
   import Thumb from "./Thumb.svelte";
 
-  /* What a search found, shared by the Suchen tab and the search in a list.
-     Only the button at the end of a row differs, so that is handed in. */
-  let { search, action }: { search: Searcher; action: Snippet<[Sign]> } = $props();
+  /* What a search found; a tap plays the sign. */
+  let { search }: { search: Searcher } = $props();
 </script>
 
 {#if search.error}
@@ -26,7 +23,6 @@
           <Thumb src={search.thumbs.get(sign.slug)} />
           <span class="name">{sign.name}</span>
         </button>
-        {@render action(sign)}
       </li>
     {/each}
   </ul>

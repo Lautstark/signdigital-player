@@ -1,4 +1,5 @@
 import { api } from "../lib/api";
+import { lists } from "./lists.svelte";
 
 /** Whether this phone is logged in at SIGNdigital, and as whom. */
 class Session {
@@ -8,10 +9,12 @@ class Session {
   async login(email: string, password: string) {
     await api.login(email, password);
     this.refresh();
+    void lists.load();
   }
 
   logout() {
     api.logout();
+    lists.forget();
     this.refresh();
   }
 

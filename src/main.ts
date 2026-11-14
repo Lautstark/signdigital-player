@@ -8,8 +8,6 @@ import "./style.css";
 /* Everything that listens to the browser is wired here, once, rather than
    when a module happens to be imported. */
 nav.remember();
-nav.openSharedLink();
-addEventListener("hashchange", () => nav.openSharedLink());
 addEventListener("popstate", () => player.closed());
 
 mount(App, { target: document.getElementById("app")! });

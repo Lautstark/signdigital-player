@@ -171,4 +171,25 @@ describe("SignDigital", () => {
     expect(seen).toHaveLength(1);
     expect([...links]).toEqual([["a", "https://x/card.jpg"]]);
   });
+  it("reads the account's Lernlisten, newest first, a page at a time", async () => {
+    const store = new MemoryStore();
+    // A token whose payload says sub "u1", the way the site signs it.
+    store.put("signdigital.token", `h.${btoa(JSON.stringify({ sub: "u1" }))}.s`);
+    const { seen, fetchFn } = server((s) => {
+      const skip = new URL(s.url).searchParams.get("$skip");
+      if (skip === "0") return [200, { total: 2, data: [{ _id: "l1", name: "Halloween", signs: [SCHMUTZIG, { name: "ohne Slug" }] }] }];
+      return [200, { total: 2, data: [{ _id: "l2", name: "", signs: [] }, { name: "ohne Id" }] }];
+    });
+
+    const lists = await new SignDigital(store, fetchFn).lists();
+
+    expect(seen.every((s) => s.method === "GET")).toBe(true);
+    const url = new URL(seen[0].url);
+    expect(url.pathname).toBe("/api/lists");
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({ owner: "u1", ownerType: "users", "$sort[updatedAt]": "-1" });
+    expect(lists.map((l) => [l.id, l.name, l.signs.map((s) => s.slug)])).toEqual([
+      ["l1", "Halloween", ["schmutzig"]],
+      ["l2", "Lernliste", []],
+    ]);
+  });
 });

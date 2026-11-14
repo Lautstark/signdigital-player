@@ -1,27 +1,28 @@
 <script lang="ts">
-  import { listFromLink } from "../lib/share";
   import { lists } from "../state/lists.svelte";
   import { nav } from "../state/nav.svelte";
   import Icon from "../components/Icon.svelte";
-  import NewList from "../components/NewList.svelte";
 
-  /* The clipboard is read inside the tap, which is the only time iOS allows
-     it (and then asks with "Einsetzen"). Without a list link in it, the sheet
-     asks for one. */
-  function openImport() {
-    nav.importing = { list: null };
-    navigator.clipboard
-      ?.readText()
-      .then((text) => {
-        const found = listFromLink(text);
-        if (found && nav.importing && !nav.importing.list) nav.importing = { list: found };
-      })
-      .catch(() => {});
-  }
+  /* The lists live in the account; each visit asks again, and the kept copy
+     stands until the answer is there. */
+  lists.load();
 </script>
 
 <div class="page">
   <h1>Listen</h1>
+
+  {#if lists.error}
+    <p class="note error">
+      {lists.all.length > 0 ? `Nicht neu geladen (${lists.error}). Hier steht der letzte Stand.` : lists.error}
+    </p>
+  {/if}
+
+  {#if lists.all.length === 0}
+    <p class="note">
+      {lists.busy ? "Lädt …" : "In deinem Konto gibt es noch keine Lernliste. Leg eine auf sign-digital.de an, dann steht sie hier."}
+    </p>
+  {/if}
+
   <ul class="rows">
     {#each lists.all as list (list.id)}
       <li class="row">
@@ -33,10 +34,10 @@
       </li>
     {/each}
   </ul>
-  <NewList />
-  <button class="button import" onclick={openImport}>
-    <Icon name="download" />
-    Liste importieren
+
+  <p class="note">Listen legst du auf sign-digital.de als Lernliste an und änderst sie dort.</p>
+  <button class="button reload" disabled={lists.busy} onclick={() => lists.load()}>
+    {lists.busy ? "Lädt …" : "Neu laden"}
   </button>
 </div>
 
@@ -49,11 +50,8 @@
     width: 18px;
     height: 18px;
   }
-  .import {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+  .reload {
+    display: block;
     width: 100%;
     margin-top: 12px;
   }

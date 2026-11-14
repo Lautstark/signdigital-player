@@ -6,7 +6,11 @@
  * The endpoints are the ones zeigmal's SignDigitalProvider uses, which are the
  * ones the site's own player uses: `POST /api/authentication` for a token,
  * `GET /api/signs?slug=…` for a sign, `GET /search/query` for the search,
- * `POST /cargo/presigned-url` for links that expire after 60 seconds.
+ * `POST /cargo/presigned-url` for links that expire after 60 seconds,
+ * `GET /api/lists` for the account's Lernlisten.
+ *
+ * The app only reads. Lists are made and changed on sign-digital.de; nothing
+ * here writes to the account.
  *
  * Nothing is written to disk. Their terms allow watching through a
  * subscription and do not allow keeping the file.
@@ -27,6 +31,13 @@ export interface SignRef {
 export interface Sign extends SignRef {
   videoPath: string | null;
   cardPath: string | null;
+}
+
+/** One of the account's Lernlisten, as the site keeps it, its signs in its order. */
+export interface Lernliste {
+  id: string;
+  name: string;
+  signs: Sign[];
 }
 
 /** The server said no: not logged in, or the token has run out. */
@@ -92,6 +103,30 @@ export class SignDigital {
     const page = (await this.authed("GET", `/search/query?${params}`)) as { data?: unknown[]; total?: number };
     const signs = (page.data ?? []).map(toSign).filter((s) => s.slug);
     return { signs, total: page.total ?? signs.length };
+  }
+
+  /**
+   * The account's Lernlisten, newest first, the way zeigmal reads them
+   * (`GET /api/lists`, measured 2026-11-08): the owner is the token's `sub`,
+   * and each list comes with its signs filled in. A sign without a slug
+   * cannot be played and is left out.
+   */
+  async lists(): Promise<Lernliste[]> {
+    const lists: Lernliste[] = [];
+    for (;;) {
+      const owner = ownerOf(this.store.get(KEY_TOKEN));
+      const params = new URLSearchParams({
+        owner,
+        ownerType: "users",
+        $limit: "50",
+        $skip: String(lists.length),
+        "$sort[updatedAt]": "-1",
+      });
+      const page = (await this.authed("GET", `/api/lists?${params}`)) as { data?: unknown[]; total?: number };
+      const found = (page.data ?? []).map(toList).filter((l): l is Lernliste => l !== null);
+      lists.push(...found);
+      if (found.length === 0 || lists.length >= (page.total ?? 0)) return lists;
+    }
   }
 
   /** Links for storage paths, in the same order. They expire after 60 seconds. */
@@ -171,6 +206,25 @@ function toSign(raw: unknown): Sign {
     videoPath: pick(r.edge?.signVideo, VIDEO_VARIANTS),
     cardPath: pick(r.edge?.signBox, CARD_VARIANTS),
   };
+}
+
+function toList(raw: unknown): Lernliste | null {
+  const r = raw as { _id?: string; name?: string; signs?: unknown[] };
+  if (!r._id) return null;
+  return { id: r._id, name: r.name || "Lernliste", signs: (r.signs ?? []).map(toSign).filter((s) => s.slug) };
+}
+
+/** The user id inside a token, which is what the site asks for lists with. */
+function ownerOf(token: string | null): string {
+  if (token === null) throw new Refused("nicht angemeldet");
+  try {
+    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const sub = (JSON.parse(atob(payload)) as { sub?: unknown }).sub;
+    if (typeof sub === "string" && sub) return sub;
+  } catch {
+    /* falls through */
+  }
+  throw new Refused("Anmeldung ohne Benutzerkennung");
 }
 
 function pick(variants: Record<string, string> | undefined, order: string[]): string | null {

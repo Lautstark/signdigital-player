@@ -1,4 +1,3 @@
-import { listFromLink, type SharedList } from "../lib/share";
 import { readJson, writeJson } from "../lib/storage";
 import { lists } from "./lists.svelte";
 
@@ -27,7 +26,7 @@ function readPlace(): Place {
   };
 }
 
-/** Which screen shows what, and the import sheet over it. */
+/** Which screen shows what. */
 class Nav {
   #place = readPlace();
   tab = $state.raw<Tab>(this.#place.tab);
@@ -35,28 +34,12 @@ class Nav {
   openList = $state.raw<string | null>(this.#place.openList);
   /** The word in the Suchen field. */
   query = $state.raw(this.#place.query);
-  /** The import sheet: closed, asking for a link, or showing a list to take over. */
-  importing = $state.raw<{ list: SharedList | null } | null>(null);
-
-  showList(id: string) {
-    this.tab = "lists";
-    this.openList = id;
-  }
 
   /** Saves the place on every change, for as long as the app runs. */
   remember() {
     $effect.root(() => {
       $effect(() => writeJson(KEY, { tab: this.tab, openList: this.openList, query: this.query } satisfies Place));
     });
-  }
-
-  /** Opened from a shared link: show the list, and take the link out of the
-      address so a reload or the home screen does not offer it again. */
-  openSharedLink() {
-    const shared = listFromLink(location.hash);
-    if (!shared) return;
-    history.replaceState(history.state, "", location.pathname + location.search);
-    this.importing = { list: shared };
   }
 }
 
